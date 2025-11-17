@@ -1,0 +1,630 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Tool Đổi Tên File Game</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .result-box {
+            background-color: #f0f9ff; /* bg-blue-50 */
+            border-color: #bae6fd; /* border-blue-200 */
+            color: #0c4a6e; /* text-blue-800 */
+        }
+        .powershell-box {
+            background-color: #0d1117; /* GitHub Dark */
+            color: #c9d1d9; /* GitHub Dark text */
+            font-family: 'Consolas', 'Courier New', monospace;
+        }
+        .copy-success, .parse-message, .db-message {
+            opacity: 0;
+            transition: opacity 0.5s ease-out;
+        }
+        .copy-hidden, .message-hidden {
+            opacity: 0;
+        }
+        .message-visible {
+            opacity: 1;
+        }
+        input[type="radio"]:checked + label {
+            background-color: #dbeafe; /* bg-blue-100 */
+            border-color: #3b82f6; /* border-blue-500 */
+        }
+        label, .suffix-label {
+            cursor: pointer;
+        }
+
+        /* Modal (Pop-up) Styles */
+        .modal {
+            display: none; /* Hidden by default */
+            position: fixed;
+            z-index: 50;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            overflow: auto;
+            background-color: rgba(0,0,0,0.5); /* Black w/ opacity */
+            align-items: center;
+            justify-content: center;
+        }
+        .modal-content {
+            background-color: #fefefe;
+            margin: auto;
+            padding: 24px;
+            border: 1px solid #888;
+            width: 90%;
+            max-width: 500px;
+            border-radius: 12px;
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+        .modal-show {
+            display: flex;
+        }
+        .close-button {
+            color: #aaa;
+            float: right;
+            font-size: 28px;
+            font-weight: bold;
+            line-height: 1;
+        }
+        .close-button:hover,
+        .close-button:focus {
+            color: black;
+            text-decoration: none;
+            cursor: pointer;
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800 min-h-screen p-4 md:p-8">
+
+    <div class="max-w-4xl mx-auto bg-white shadow-xl rounded-2xl overflow-hidden">
+        
+        <!-- Header -->
+        <div class="bg-gradient-to-r from-blue-600 to-blue-800 p-6">
+            <h1 class="text-3xl font-bold text-white text-center tracking-tight">
+                Tool Đổi Tên File Game
+            </h1>
+            <p class="text-blue-100 text-center mt-2">Tạo tên file theo cấu trúc một cách nhanh chóng.</p>
+        </div>
+
+        <div class="p-6 md:p-8 space-y-8">
+
+            <!-- Phần 1: Phân Tích Tên File -->
+            <section class="border border-gray-200 p-5 rounded-lg shadow-sm bg-gray-50">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">1. Phân Tích Tên File Gốc</h2>
+                <p class="text-sm text-gray-600 mb-4">Dán tên file gốc vào đây (ví dụ: `Woolscape_A_NoelHouse_Level_508 (1)`) để bóc tách tự động.</p>
+                <div class="flex flex-col sm:flex-row sm:space-x-4">
+                    <input type="text" id="fullFileName" class="flex-grow w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent" placeholder="Dán tên file ở đây...">
+                    <button id="parseButton" class="mt-3 sm:mt-0 w-full sm:w-auto px-6 py-3 bg-blue-600 text-white font-semibold rounded-lg shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50 transition duration-200">
+                        Phân Tích
+                    </button>
+                </div>
+                <span id="parseMessage" class="text-sm mt-2 block parse-message message-hidden"></span>
+            </section>
+
+            <!-- Phần 2: CSDL Game -->
+            <section class="border border-gray-200 p-5 rounded-lg shadow-sm">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">2. CSDL Game (Lưu trên trình duyệt)</h2>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <!-- Cột chọn/xóa game -->
+                    <div>
+                        <label for="gameSelect" class="block text-sm font-medium text-gray-700 mb-2">Chọn/Xóa Game (từ CSDL)</label>
+                        <div class="flex space-x-2">
+                            <select id="gameSelect" class="flex-grow w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent">
+                                <option value="">-- Chọn game có sẵn --</option>
+                            </select>
+                            <button id="deleteGameButton" class="px-3 py-2 bg-red-600 text-white text-sm font-semibold rounded-lg shadow-md hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-red-500 h-full">
+                                Xóa
+                            </button>
+                        </div>
+                        <span id="deleteGameMessage" class="text-sm mt-2 block db-message message-hidden"></span>
+                    </div>
+                    
+                    <!-- Cột thêm game mới -->
+                    <div class="border-t md:border-t-0 md:border-l border-gray-200 pt-4 md:pt-0 md:pl-4">
+                        <label for="newGameName" class="block text-sm font-medium text-gray-700 mb-2">Thêm Game Mới vào CSDL</label>
+                        <div class="flex space-x-3">
+                            <input type="text" id="newGameName" class="flex-grow w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tên game mới...">
+                            <button id="addGameButton" class="px-5 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                                Lưu
+                            </button>
+                        </div>
+                        <span id="addGameMessage" class="text-sm mt-2 block db-message message-hidden"></span>
+                    </div>
+                </div>
+            </section>
+
+            <!-- Phần 3: Trình Tạo Tên (Inputs) -->
+            <section class="space-y-6">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">3. Trình Tạo Tên Chi Tiết</h2>
+                <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <!-- Tên Game -->
+                    <div>
+                        <label for="gameName" class="block text-sm font-medium text-gray-700 mb-2">Tên Game</label>
+                        <input type="text" id="gameName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ví dụ: Yarndom">
+                    </div>
+                    
+                    <!-- Model -->
+                    <div>
+                        <label for="model" class="block text-sm font-medium text-gray-700 mb-2">Model</label>
+                        <input type="text" id="model" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ví dụ: A_NoelHouse">
+                    </div>
+                    
+                    <!-- Level -->
+                    <div>
+                        <label for="level" class="block text-sm font-medium text-gray-700 mb-2">Level (Chỉ nhập số)</label>
+                        <input type="number" id="level" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Ví dụ: 508">
+                    </div>
+                </div>
+
+                <!-- Nền tảng -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Nền tảng (Tùy chọn)</label>
+                    <div class="flex flex-wrap gap-3">
+                        <input type="radio" id="platform_none" name="platform" value="none" class="hidden" checked>
+                        <label for="platform_none" class="px-4 py-2 border rounded-lg text-sm font-medium border-gray-300">Không chọn</label>
+                        
+                        <input type="radio" id="platform_android" name="platform" value="Android" class="hidden">
+                        <label for="platform_android" class="px-4 py-2 border rounded-lg text-sm font-medium border-gray-300">Android</label>
+                        
+                        <input type="radio" id="platform_ios" name="platform" value="IOS" class="hidden">
+                        <label for="platform_ios" class="px-4 py-2 border rounded-lg text-sm font-medium border-gray-300">IOS</label>
+                    </div>
+                </div>
+
+                <!-- Phần Đuôi -->
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">Phần Đuôi</label>
+                    <div id="suffixContainer" class="flex flex-wrap gap-3 items-center">
+                        <!-- Suffix radios will be generated by JS -->
+                        <button id="addSuffixButton" class="w-10 h-10 flex items-center justify-center bg-blue-600 text-white text-2xl font-bold rounded-full shadow-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">+</button>
+                    </div>
+                    <span id="addSuffixMessage" class="text-sm mt-2 block db-message message-hidden"></span>
+                </div>
+            </section>
+
+            <!-- Phần 4: Kết Quả -->
+            <section class="bg-gray-50 border border-gray-200 p-5 rounded-lg shadow-inner">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">4. Kết Quả (Real-time)</h2>
+                <div class="relative">
+                    <input type="text" id="result" readonly class="w-full px-4 py-4 text-lg font-mono border-gray-300 rounded-lg bg-white result-box" value="">
+                    <button id="copyButton" class="absolute right-2 top-1/2 -translate-y-1/2 px-4 py-2 bg-blue-600 text-white text-sm font-semibold rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500">
+                        Copy
+                    </button>
+                </div>
+                <span id="copyMessage" class="text-sm mt-2 block copy-success copy-hidden">Đã copy vào clipboard!</span>
+            </section>
+
+            <!-- Phần 5: Tạo Thư Mục (PowerShell) - MỚI -->
+            <section class="border border-gray-200 p-5 rounded-lg shadow-sm">
+                <h2 class="text-xl font-semibold text-gray-700 mb-4">5. Tạo Thư Mục (PowerShell)</h2>
+                <p class="text-sm text-gray-600 mb-4">Copy script này và chạy trong PowerShell để tạo các thư mục mạng quảng cáo.</p>
+                <div class="relative">
+                    <textarea id="powershellScript" readonly class="w-full h-24 p-4 text-sm border-gray-300 rounded-lg powershell-box resize-none">mkdir Applovin, Ironsource, Mintegral, Unity</textarea>
+                    <button id="copyScriptButton" class="absolute right-3 top-3 px-3 py-1 bg-gray-600 text-gray-200 text-xs font-semibold rounded-md hover:bg-gray-500 focus:outline-none focus:ring-2 focus:ring-gray-400">
+                        Copy Script
+                    </button>
+                </div>
+                <span id="copyScriptMessage" class="text-sm mt-2 block copy-success copy-hidden">Đã copy script!</span>
+            </section>
+        </div>
+    </div>
+
+    <!-- Modal (Pop-up) Thêm Đuôi Mới -->
+    <div id="addSuffixModal" class="modal">
+        <div class="modal-content">
+            <span id="closeSuffixModal" class="close-button">&times;</span>
+            <h3 class="text-lg font-semibold mb-4">Thêm Đuôi Mới</h3>
+            <p class="text-sm text-gray-600 mb-4">Gõ tên đuôi mới (ví dụ: `admob` hoặc `_admob`). Tiền tố `_` sẽ được tự động thêm nếu thiếu.</p>
+            <input type="text" id="newSuffixName" class="w-full px-4 py-3 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500" placeholder="Tên đuôi mới...">
+            <button id="saveSuffixButton" class="mt-4 w-full px-6 py-3 bg-green-600 text-white font-semibold rounded-lg shadow-md hover:bg-green-700 focus:outline-none focus:ring-2 focus:ring-green-500">
+                Lưu Đuôi Mới
+            </button>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // ----- CSDL (KEYS) -----
+            const CUSTOM_GAMES_KEY = 'customGameDatabase_v2';
+            const CUSTOM_SUFFIX_KEY = 'customSuffixDatabase_v2';
+
+            // ----- CSDL MẶC ĐỊNH -----
+            const defaultGameDatabase = [
+                'Yarndom',
+                'Woolscape',
+                'StringArt',
+                'KnotPuzzle'
+            ];
+            
+            // Sửa: Thêm "Không có đuôi" làm giá trị đặc biệt
+            const defaultSuffixDatabase = [
+                '', // Đại diện cho "Không có đuôi"
+                '_unityads',
+                '_ironsource',
+                '_mintegral'
+            ];
+
+            // ----- DOM Elements -----
+            const gameSelect = document.getElementById('gameSelect');
+            const newGameNameInput = document.getElementById('newGameName');
+            const addGameButton = document.getElementById('addGameButton');
+            const addGameMessage = document.getElementById('addGameMessage');
+            const deleteGameButton = document.getElementById('deleteGameButton');
+            const deleteGameMessage = document.getElementById('deleteGameMessage');
+
+            const suffixContainer = document.getElementById('suffixContainer');
+            const addSuffixButton = document.getElementById('addSuffixButton');
+            const addSuffixMessage = document.getElementById('addSuffixMessage');
+            
+            const addSuffixModal = document.getElementById('addSuffixModal');
+            const closeSuffixModal = document.getElementById('closeSuffixModal');
+            const newSuffixNameInput = document.getElementById('newSuffixName');
+            const saveSuffixButton = document.getElementById('saveSuffixButton');
+
+            const gameNameInput = document.getElementById('gameName');
+            const modelInput = document.getElementById('model');
+            const levelInput = document.getElementById('level');
+            const platformRadios = document.querySelectorAll('input[name="platform"]');
+            
+            const resultInput = document.getElementById('result');
+            const copyButton = document.getElementById('copyButton');
+            const copyMessage = document.getElementById('copyMessage');
+
+            const fullFileNameInput = document.getElementById('fullFileName');
+            const parseButton = document.getElementById('parseButton');
+            const parseMessage = document.getElementById('parseMessage');
+            
+            // Phần 5 - PowerShell
+            const powershellScriptInput = document.getElementById('powershellScript');
+            const copyScriptButton = document.getElementById('copyScriptButton');
+            const copyScriptMessage = document.getElementById('copyScriptMessage');
+
+
+            // ----- HÀM QUẢN LÝ CSDL CHUNG -----
+            
+            // Khởi tạo CSDL (cho cả Game và Suffix)
+            function initializeDatabase(key, defaultData) {
+                const storedData = localStorage.getItem(key);
+                if (!storedData) {
+                    localStorage.setItem(key, JSON.stringify(defaultData.sort()));
+                }
+            }
+
+            // Lấy CSDL
+            function getDataFromStorage(key) {
+                const storedData = localStorage.getItem(key);
+                if (storedData) {
+                    try {
+                        return JSON.parse(storedData);
+                    } catch (e) {
+                        console.error(`Lỗi parse CSDL (Key: ${key}):`, e);
+                        localStorage.removeItem(key);
+                        return [];
+                    }
+                }
+                return [];
+            }
+
+            // Lưu CSDL
+            function saveDataToStorage(key, data) {
+                localStorage.setItem(key, JSON.stringify([...new Set(data)].sort()));
+            }
+
+            // Hiển thị thông báo
+            function showTempMessage(element, message, colorClass = 'text-green-600', duration = 2500) {
+                element.textContent = message;
+                element.classList.remove('message-hidden', 'text-green-600', 'text-red-600');
+                element.classList.add('message-visible', colorClass);
+                
+                setTimeout(() => {
+                    element.classList.remove('message-visible');
+                    element.classList.add('message-hidden');
+                }, duration);
+            }
+
+            // ----- CSDL GAME (LOGIC) -----
+            
+            function loadGameDatabase() {
+                const allGames = getDataFromStorage(CUSTOM_GAMES_KEY);
+                populateGameDropdown(allGames);
+            }
+
+            function populateGameDropdown(games) {
+                gameSelect.innerHTML = '<option value="">-- Chọn game có sẵn --</option>';
+                games.forEach(game => {
+                    const option = document.createElement('option');
+                    option.value = game;
+                    option.textContent = game;
+                    gameSelect.appendChild(option);
+                });
+            }
+
+            gameSelect.addEventListener('change', () => {
+                gameNameInput.value = gameSelect.value || '';
+                generateName();
+            });
+
+            addGameButton.addEventListener('click', () => {
+                const newGame = newGameNameInput.value.trim();
+                if (!newGame) {
+                    showTempMessage(addGameMessage, "Tên game không thể để trống!", 'text-red-600');
+                    return;
+                }
+                let allGames = getDataFromStorage(CUSTOM_GAMES_KEY);
+                allGames.push(newGame);
+                saveDataToStorage(CUSTOM_GAMES_KEY, allGames);
+                loadGameDatabase();
+                showTempMessage(addGameMessage, `Đã lưu "${newGame}"!`);
+                newGameNameInput.value = '';
+                gameSelect.value = newGame;
+                gameNameInput.value = newGame;
+                generateName();
+            });
+
+            deleteGameButton.addEventListener('click', () => {
+                const selectedGame = gameSelect.value;
+                if (!selectedGame) {
+                    showTempMessage(deleteGameMessage, "Bạn chưa chọn game nào để xóa.", 'text-red-600');
+                    return;
+                }
+                let allGames = getDataFromStorage(CUSTOM_GAMES_KEY);
+                const updatedGames = allGames.filter(game => game !== selectedGame);
+                saveDataToStorage(CUSTOM_GAMES_KEY, updatedGames);
+                loadGameDatabase();
+                if (gameNameInput.value === selectedGame) {
+                    gameNameInput.value = '';
+                    generateName();
+                }
+                showTempMessage(deleteGameMessage, `Đã xóa "${selectedGame}"!`);
+            });
+
+            // ----- CSDL SUFFIX (LOGIC) -----
+
+            function loadSuffixDatabase() {
+                const allSuffixes = getDataFromStorage(CUSTOM_SUFFIX_KEY);
+                populateSuffixRadios(allSuffixes);
+            }
+            
+            function populateSuffixRadios(suffixes) {
+                // Xóa các radio cũ, giữ lại nút Add
+                while (suffixContainer.firstChild && suffixContainer.firstChild !== addSuffixButton) {
+                    suffixContainer.removeChild(suffixContainer.firstChild);
+                }
+
+                suffixes.forEach((suffix, index) => {
+                    const id = `suffix_opt_${index}`;
+                    const wrapper = document.createElement('div');
+                    
+                    const radio = document.createElement('input');
+                    radio.type = 'radio';
+                    radio.id = id;
+                    radio.name = 'suffix';
+                    radio.value = suffix;
+                    radio.className = 'hidden';
+                    if (index === 0) radio.checked = true; // Mặc định chọn cái đầu tiên
+                    
+                    const label = document.createElement('label');
+                    label.htmlFor = id;
+                    label.textContent = (suffix === '') ? 'Không có đuôi' : suffix; // Hiển thị
+                    label.className = 'px-4 py-2 border rounded-lg text-sm font-medium border-gray-300 suffix-label';
+                    
+                    wrapper.appendChild(radio);
+                    wrapper.appendChild(label);
+                    
+                    // Thêm sự kiện change
+                    radio.addEventListener('change', generateName);
+                    
+                    // Chèn vào trước nút Add
+                    suffixContainer.insertBefore(wrapper, addSuffixButton);
+                });
+            }
+
+            // Mở Modal
+            addSuffixButton.addEventListener('click', () => {
+                addSuffixModal.classList.add('modal-show');
+                newSuffixNameInput.focus();
+            });
+
+            // Đóng Modal
+            function closeModal() {
+                addSuffixModal.classList.remove('modal-show');
+                newSuffixNameInput.value = ''; // Xóa input khi đóng
+            }
+            closeSuffixModal.addEventListener('click', closeModal);
+            addSuffixModal.addEventListener('click', (e) => {
+                if (e.target === addSuffixModal) {
+                    closeModal();
+                }
+            });
+
+            // Lưu Suffix mới
+            saveSuffixButton.addEventListener('click', () => {
+                let newSuffix = newSuffixNameInput.value.trim();
+                if (!newSuffix) {
+                    showTempMessage(addSuffixMessage, "Tên đuôi không thể để trống!", 'text-red-600');
+                    return;
+                }
+                
+                // Tự động thêm '_' nếu thiếu và không phải là 'Không có đuôi'
+                if (newSuffix !== '' && !newSuffix.startsWith('_')) {
+                    newSuffix = '_' + newSuffix;
+                }
+
+                let allSuffixes = getDataFromStorage(CUSTOM_SUFFIX_KEY);
+                allSuffixes.push(newSuffix);
+                saveDataToStorage(CUSTOM_SUFFIX_KEY, allSuffixes);
+                loadSuffixDatabase(); // Tải lại CSDL
+                
+                // Tự động chọn cái vừa thêm
+                document.querySelector(`input[name="suffix"][value="${newSuffix}"]`).checked = true;
+                
+                closeModal();
+                generateName();
+                showTempMessage(addSuffixMessage, `Đã lưu đuôi "${newSuffix}"!`);
+            });
+
+            // ----- HÀM TẠO TÊN -----
+            
+            function getSelectedSuffix() {
+                const checkedRadio = document.querySelector('input[name="suffix"]:checked');
+                return checkedRadio ? checkedRadio.value : ''; // Mặc định là chuỗi rỗng
+            }
+            
+            function generateName() {
+                const gameName = gameNameInput.value.trim().replace(/-/g, '_');
+                const model = modelInput.value.trim().replace(/-/g, '_');
+                const level = levelInput.value.trim();
+                let platform = 'none';
+                for (const radio of platformRadios) {
+                    if (radio.checked) {
+                        platform = radio.value;
+                        break;
+                    }
+                }
+                const suffix = getSelectedSuffix(); // Lấy đuôi từ radio
+
+                let parts = [];
+                if (gameName) parts.push(gameName);
+                if (model) parts.push(model);
+                if (level) parts.push(`Level_${level}`);
+                if (platform !== 'none') parts.push(platform);
+
+                const mainPart = parts.join('_');
+                const finalName = mainPart + suffix;
+                resultInput.value = finalName;
+            }
+
+            // ----- HÀM PHÂN TÍCH -----
+            
+            function parseFileName() {
+                const fullString = fullFileNameInput.value.trim().replace(/\s*\(\d+\)\s*$/, '');
+                if (!fullString) {
+                    showTempMessage(parseMessage, "Vui lòng nhập tên file!", 'text-red-600');
+                    return;
+                }
+
+                let tempString = fullString;
+                let parsedSuffix = '';
+                let parsedPlatform = 'none';
+                let parsedLevel = '';
+                let parsedModel = '';
+                let parsedGame = '';
+
+                // Lấy danh sách đuôi đã biết từ CSDL
+                const KNOWN_SUFFIXES = getDataFromStorage(CUSTOM_SUFFIX_KEY).filter(s => s !== ''); // Lấy mọi đuôi trừ 'Không có đuôi'
+                
+                // 1. Tách Đuôi
+                KNOWN_SUFFIXES.sort((a, b) => b.length - a.length); // Ưu tiên đuôi dài hơn
+                for (const suffix of KNOWN_SUFFIXES) {
+                    if (tempString.endsWith(suffix)) {
+                        parsedSuffix = suffix;
+                        tempString = tempString.substring(0, tempString.length - suffix.length);
+                        break;
+                    }
+                }
+                
+                // 2. Tách Nền tảng
+                if (tempString.endsWith('_Android') || tempString.endsWith('-Android')) {
+                    parsedPlatform = 'Android';
+                    tempString = tempString.substring(0, tempString.length - '_Android'.length);
+                } else if (tempString.endsWith('_IOS') || tempString.endsWith('-IOS')) {
+                    parsedPlatform = 'IOS';
+                    tempString = tempString.substring(0, tempString.length - '_IOS'.length);
+                }
+
+                // 3. Tách Level
+                const levelMatch = tempString.match(/([-_]Level_?|[-_]lv)(\d+)$/i);
+                if (levelMatch) {
+                    parsedLevel = levelMatch[2];
+                    tempString = tempString.substring(0, tempString.length - levelMatch[0].length);
+                } else {
+                    const simpleLevelMatch = tempString.match(/([-_])(\d+)$/);
+                    if (simpleLevelMatch) {
+                        parsedLevel = simpleLevelMatch[2];
+                        tempString = tempString.substring(0, tempString.length - simpleLevelMatch[0].length);
+                    }
+                }
+                
+                // 4. Tách Model và Game
+                const modelMatch = tempString.match(/([-_]A[_-].*)/i);
+                if (modelMatch) {
+                    parsedModel = modelMatch[1].substring(1);
+                    parsedGame = tempString.substring(0, tempString.length - modelMatch[0].length);
+                } else {
+                    parsedGame = tempString;
+                }
+
+                // 5. Điền vào các ô input
+                gameNameInput.value = parsedGame;
+                modelInput.value = parsedModel;
+                levelInput.value = parsedLevel;
+
+                // 6. Cập nhật Radio
+                document.getElementById(`platform_${parsedPlatform.toLowerCase()}`).checked = true;
+
+                // Chọn Suffix
+                let suffixRadio = document.querySelector(`input[name="suffix"][value="${parsedSuffix}"]`);
+                if (suffixRadio) {
+                    suffixRadio.checked = true;
+                } else {
+                    // Nếu không tìm thấy, chọn 'Không có đuôi'
+                    document.querySelector(`input[name="suffix"][value=""]`).checked = true;
+                }
+
+                generateName();
+                showTempMessage(parseMessage, "Đã bóc tách thành công!", 'text-green-600');
+            }
+
+            // ----- COPY BUTTONS -----
+            copyButton.addEventListener('click', () => {
+                resultInput.select();
+                resultInput.setSelectionRange(0, 99999);
+                try {
+                    document.execCommand('copy');
+                    showTempMessage(copyMessage, "Đã copy vào clipboard!", 'text-green-600', 1500);
+                } catch (err) {
+                    showTempMessage(copyMessage, "Lỗi! Không thể copy.", 'text-red-600', 1500);
+                }
+            });
+
+            // Nút Copy Script (Phần 5)
+            copyScriptButton.addEventListener('click', () => {
+                powershellScriptInput.select();
+                powershellScriptInput.setSelectionRange(0, 99999);
+                try {
+                    document.execCommand('copy');
+                    showTempMessage(copyScriptMessage, "Đã copy script!", 'text-green-600', 1500);
+                } catch (err) {
+                    showTempMessage(copyScriptMessage, "Lỗi! Không thể copy.", 'text-red-600', 1500);
+                }
+            });
+
+            // ----- GÁN SỰ KIỆN -----
+            gameNameInput.addEventListener('input', generateName);
+            modelInput.addEventListener('input', generateName);
+            levelInput.addEventListener('input', generateName);
+            platformRadios.forEach(radio => radio.addEventListener('change', generateName));
+            
+            parseButton.addEventListener('click', parseFileName);
+            fullFileNameInput.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    parseFileName();
+                }
+            });
+
+            // ----- KHỞI CHẠY -----
+            initializeDatabase(CUSTOM_GAMES_KEY, defaultGameDatabase);
+            initializeDatabase(CUSTOM_SUFFIX_KEY, defaultSuffixDatabase);
+            
+            loadGameDatabase();
+            loadSuffixDatabase();
+            
+            generateName(); // Chạy lần đầu để có kết quả
+        });
+    </script>
+</body>
+</html>
